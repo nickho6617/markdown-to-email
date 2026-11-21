@@ -254,8 +254,8 @@
             <button class="btn-clean" id="cleanTextBtn" title="Strips terminal/box bars (│, |) and unwraps broken console lines">
                 ✨ Clean Pasted Text
             </button>
-            <button class="btn-secondary" id="loadExampleBtn">
-                Load Example
+            <button class="btn-secondary" id="clearBtn" title="Clear screen">
+                🗑️ Clear
             </button>
             <button class="btn-secondary" id="copyMarkdownBtn">
                 Copy Clean MD
@@ -278,7 +278,7 @@
                     <span id="charCount" style="font-size: 12px; color: var(--text-muted);">0 chars</span>
                 </div>
             </div>
-            <textarea id="markdownInput" spellcheck="false" placeholder="Paste your markdown or messy text here...&#10;&#10;Supports automatic removal of terminal pipes (│, |) and repairs broken line wraps!"></textarea>
+            <textarea id="markdownInput" autofocus spellcheck="false" placeholder="Paste your markdown or raw text here...&#10;&#10;Use '✨ Clean Pasted Text' to strip terminal pipes (│, |) and repair broken line wraps, then click 'Copy for Email'!"></textarea>
         </div>
 
         <!-- Preview Pane -->
@@ -307,10 +307,10 @@
         const preview = document.getElementById('previewArea');
         const fontSelect = document.getElementById('fontSelect');
         const cleanTextBtn = document.getElementById('cleanTextBtn');
+        const clearBtn = document.getElementById('clearBtn');
         const copyRichBtn = document.getElementById('copyRichBtn');
         const copyHtmlBtn = document.getElementById('copyHtmlBtn');
         const copyMarkdownBtn = document.getElementById('copyMarkdownBtn');
-        const loadExampleBtn = document.getElementById('loadExampleBtn');
         const charCount = document.getElementById('charCount');
         const toast = document.getElementById('toast');
 
@@ -369,6 +369,16 @@
         function updatePreview() {
             const val = input.value;
             charCount.innerText = `${val.length} chars`;
+            if (!val.trim()) {
+                preview.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 220px; color: #94a3b8; text-align: center; user-select: none;">
+                        <div style="font-size: 38px; margin-bottom: 10px;">📋</div>
+                        <div style="font-size: 15px; font-weight: 600; color: #475569;">Ready for your text</div>
+                        <div style="font-size: 13px; color: #94a3b8; margin-top: 4px; max-width: 340px;">Paste your markdown or raw text on the left to see the instant email-ready preview.</div>
+                    </div>
+                `;
+                return;
+            }
             preview.innerHTML = renderEmailHtml(val);
         }
 
@@ -441,29 +451,6 @@
             return resultLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
         }
 
-        // Generic placeholder example
-        const sampleEmailClean = `Hi [Recipient Name],
-
-Thanks for the feedback on the project plan. Here is a summary of the key updates and architecture controls:
-
-1. **Security & Server-side Enforcement**: Every route, API endpoint (\`/api/data/\`), and asset enforces permissions server-side to block unauthorized requests (\`403 Forbidden\`).
-2. **Least Privilege Access**: Accounts and access tokens are restricted strictly to read-only scopes by default (\`User.ReadBasic\`).
-3. **Enterprise Single Sign-On (SSO)**: Local credentials are disabled for corporate domains in favor of centralized identity management.
-4. **Governance & Approval Workflows**: Organization-wide visibility requires explicit approval from designated administrators.
-5. **Role-Based Access Control**: Administrative permissions are assigned via predefined enterprise app roles rather than manual flags.
-6. **Audit Trails & Logging**: Append-only logs record all access mutations, permission grants, and data downloads for periodic compliance reporting.
-
-### Department Categories:
-- Engineering (Tech, Dev, QA)
-- Product & Design
-- Operations & Logistics
-- Information Security
-
-> Please review the points above and let us know if you have any questions or recommended adjustments.
-
-Best regards,
-**[Your Name / Team]**`;
-
         // Event listeners
         input.addEventListener('input', updatePreview);
         fontSelect.addEventListener('change', updatePreview);
@@ -480,15 +467,23 @@ Best regards,
             showToast("✨ Text cleaned and reformatted!");
         });
 
-        loadExampleBtn.addEventListener('click', () => {
-            input.value = sampleEmailClean;
+        clearBtn.addEventListener('click', () => {
+            if (!input.value) {
+                showToast("Screen is already clear.");
+                return;
+            }
+            input.value = '';
             updatePreview();
-            showToast("Loaded cleaned example!");
+            input.focus();
+            showToast("Screen cleared!");
         });
 
         // Copy Rich Text (Clipboard API)
         copyRichBtn.addEventListener('click', async () => {
-            if (!input.value.trim()) return;
+            if (!input.value.trim()) {
+                showToast("Please paste text first.");
+                return;
+            }
             try {
                 const htmlContent = renderEmailHtml(input.value);
                 const plainContent = preview.innerText;
@@ -517,21 +512,28 @@ Best regards,
         });
 
         copyHtmlBtn.addEventListener('click', async () => {
-            if (!input.value.trim()) return;
+            if (!input.value.trim()) {
+                showToast("Please paste text first.");
+                return;
+            }
             const htmlContent = renderEmailHtml(input.value);
             await navigator.clipboard.writeText(htmlContent);
             showToast("Copied raw HTML to clipboard!");
         });
 
         copyMarkdownBtn.addEventListener('click', async () => {
-            if (!input.value.trim()) return;
+            if (!input.value.trim()) {
+                showToast("Please paste text first.");
+                return;
+            }
             await navigator.clipboard.writeText(input.value);
             showToast("Copied Markdown to clipboard!");
         });
 
-        // Initialize with sample on load
-        input.value = sampleEmailClean;
+        // Initialize ready for immediate paste
+        input.value = '';
         updatePreview();
+        input.focus();
     </script>
 </body>
 
