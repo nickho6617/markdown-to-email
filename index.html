@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to Email</title>
+    <!-- Load Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Web App UI Styles (These do NOT get copied into the email) */
+        :root {
+            --bg: #f3f4f6;
+            --border: #d1d5db;
+            --primary: #2563eb;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: row;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            gap: 20px;
+            background: var(--bg);
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #374151;
+        }
+
+        textarea,
+        .preview-container {
+            flex: 1;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #fff;
+            overflow-y: auto;
+            outline: none;
+        }
+
+        textarea {
+            font-family: ui-monospace, monospace;
+            font-size: 14px;
+            resize: none;
+            line-height: 1.5;
+            color: #1f2937;
+        }
+
+        textarea:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        button {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button.success {
+            background: #16a34a;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Input Pane -->
+    <div class="pane">
+        <div class="header">
+            <h2>Markdown Input</h2>
+        </div>
+        <textarea id="input"
+            placeholder="Type your markdown here...&#10;&#10;## Example&#10;- List item 1&#10;- List item 2&#10;&#10;> Blockquotes and **bold** text work perfectly."></textarea>
+    </div>
+
+    <!-- Preview Pane -->
+    <div class="pane">
+        <div class="header">
+            <h2>Email Preview</h2>
+            <button id="copyBtn">Copy Rich Text</button>
+        </div>
+        <div class="preview-container" id="preview"></div>
+    </div>
+
+    <script>
+        const input = document.getElementById('input');
+        const preview = document.getElementById('preview');
+        const copyBtn = document.getElementById('copyBtn');
+
+        // Email-safe inline CSS mappings
+        // Email clients aggressively strip <style> tags, so we must inject styles directly onto HTML elements.
+        const emailStyles = {
+            'p': 'margin: 0 0 1em 0; line-height: 1.5; font-family: Arial, sans-serif; color: #333333;',
+            'h1': 'margin: 0 0 0.5em 0; font-family: Arial, sans-serif; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; color: #111111;',
+            'h2': 'margin: 1em 0 0.5em 0; font-family: Arial, sans-serif; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; color: #111111;',
+            'h3': 'margin: 1em 0 0.5em 0; font-family: Arial, sans-serif; color: #111111;',
+            'a': 'color: #0366d6; text-decoration: none;',
+            'code': 'font-family: monospace; background-color: rgba(27,31,35,0.05); padding: 0.2em 0.4em; border-radius: 3px; font-size: 85%;',
+            'pre': 'font-family: monospace; background-color: #f6f8fa; padding: 16px; overflow: auto; border-radius: 3px; line-height: 1.45; border: 1px solid #e1e4e8;',
+            'blockquote': 'padding: 0 1em; color: #6a737d; border-left: 0.25em solid #dfe2e5; margin: 0 0 1em 0; font-style: italic;',
+            'table': 'border-collapse: collapse; width: 100%; margin-bottom: 1em; font-family: Arial, sans-serif; font-size: 14px;',
+            'th': 'padding: 8px 12px; border: 1px solid #dfe2e5; background-color: #f6f8fa; font-weight: bold; text-align: left;',
+            'td': 'padding: 8px 12px; border: 1px solid #dfe2e5;',
+            'ul': 'padding-left: 2em; margin: 0 0 1em 0; font-family: Arial, sans-serif; color: #333333;',
+            'ol': 'padding-left: 2em; margin: 0 0 1em 0; font-family: Arial, sans-serif; color: #333333;',
+            'li': 'margin-bottom: 0.25em;'
+        };
+
+        function updatePreview() {
+            // 1. Parse Markdown to raw HTML
+            const rawHtml = marked.parse(input.value);
+
+            // 2. Load raw HTML into an invisible DOM wrapper
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = rawHtml;
+
+            // 3. Inject inline CSS onto specific tags
+            Object.keys(emailStyles).forEach(tag => {
+                const elements = tempDiv.getElementsByTagName(tag);
+                for (let el of elements) {
+                    el.style.cssText += emailStyles[tag];
+                }
+            });
+
+            // 4. Wrap everything in a base style for the email body
+            const finalHtml = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; line-height: 1.5;">${tempDiv.innerHTML}</div>`;
+            preview.innerHTML = finalHtml;
+        }
+
+        // Re-render on every keystroke
+        input.addEventListener('input', updatePreview);
+
+        // Copy logic
+        copyBtn.addEventListener('click', async () => {
+            if (!input.value.trim()) return;
+
+            try {
+                // Push both HTML and plain text to clipboard. 
+                // Email clients will automatically choose the HTML version when pasting into the compose window.
+                const clipboardItem = new ClipboardItem({
+                    'text/plain': new Blob([preview.innerText], { type: 'text/plain' }),
+                    'text/html': new Blob([preview.innerHTML], { type: 'text/html' })
+                });
+
+                await navigator.clipboard.write([clipboardItem]);
+
+                // Success animation
+                const originalText = copyBtn.innerText;
+                copyBtn.innerText = 'Copied!';
+                copyBtn.classList.add('success');
+
+                setTimeout(() => {
+                    copyBtn.innerText = originalText;
+                    copyBtn.classList.remove('success');
+                }, 2000);
+            } catch (err) {
+                console.error('Copy failed', err);
+                alert('Failed to copy. Please ensure you are running this over HTTPS or localhost.');
+            }
+        });
+
+        // Populate with a default placeholder immediately
+        input.value = "## Hello there,\n\nHere is a list of features:\n\n- Converts **Markdown** to HTML\n- Injects *inline CSS* automatically\n- Works seamlessly with Gmail and Outlook\n\n| Item | Status |\n|---|---|\n| Markdown | parsed |\n| CSS | inline |\n\n> This saves a lot of manual formatting time.\n\nCheers,\nYour automated workflow";
+        updatePreview();
+    </script>
+</body>
+
+</html>
