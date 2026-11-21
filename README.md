@@ -1,6 +1,14 @@
 # Markdown to Email & HTML Converter
 
-A fast, lightweight, zero-dependency static web app that converts Markdown into email-ready rich text and HTML with automatic inlined CSS. Optimized for 100% free hosting on **GitHub Pages**.
+[![Live App](https://img.shields.io/badge/🚀_LAUNCH_APP-Click_Here-2563eb?style=for-the-badge&logo=rocket)](https://nickho6617.github.io/markdown-to-email/)
+[![GitHub Pages](https://img.shields.io/badge/Hosted_on-GitHub_Pages-16a34a?style=for-the-badge&logo=github&logoColor=white)](https://nickho6617.github.io/markdown-to-email/)
+
+> ### 🌐 Live Web App: **[https://nickho6617.github.io/markdown-to-email/](https://nickho6617.github.io/markdown-to-email/)**
+> *Click the button above or link to open the converter directly in your browser.*
+
+---
+
+A fast, lightweight, zero-dependency static web app that converts Markdown into email-ready rich text and HTML with automatic inlined CSS.
 
 ## Features
 
@@ -12,33 +20,3 @@ A fast, lightweight, zero-dependency static web app that converts Markdown into 
   - **Copy Raw HTML**: Get the inline-styled HTML markup for newsletters or email templates.
 - **Customizable Typography**: Choose between standard email-safe fonts (Arial, Segoe UI, Calibri, Georgia, System Default) and font sizes.
 - **Zero Build Tools**: Single static HTML page powered by CDN-hosted [marked.js](https://marked.js.org/).
-
----
-
-## Free Hosting on GitHub Pages (Step-by-Step)
-
-You can host this for free on GitHub Pages in under 2 minutes:
-
-### 1. Initialize Git and Commit
-```bash
-git init -b main
-git add .
-git commit -m "Initial commit: Markdown to Email converter"
-```
-
-### 2. Create a GitHub Repository & Push
-Create a new public or private repository on GitHub (e.g., `markdown-to-email` or `markdown-to-html`), then run:
-```bash
-git remote add origin https://github.com/<YOUR-USERNAME>/<YOUR-REPO-NAME>.git
-git push -u origin main
-```
-
-### 3. Turn on GitHub Pages
-1. Go to your repository on GitHub.
-2. Click **Settings** > **Pages** (in the left sidebar).
-3. Under **Build and deployment**:
-   - **Source**: Select `Deploy from a branch`.
-   - **Branch**: Select `main` and `/ (root)`.
-4. Click **Save**.
-5. Within 1 minute, your site will be live at:
-   `https://<YOUR-USERNAME>.github.io/<YOUR-REPO-NAME>/`
