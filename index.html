@@ -4,94 +4,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown to Email</title>
-    <!-- Load Marked.js for Markdown parsing -->
+    <title>Markdown to Email — Free GitHub Pages Formatter</title>
+    <!-- Marked.js for Markdown parsing -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        /* Web App UI Styles (These do NOT get copied into the email) */
         :root {
-            --bg: #f3f4f6;
-            --border: #d1d5db;
+            --bg-canvas: #f8fafc;
+            --bg-card: #ffffff;
+            --border: #e2e8f0;
+            --border-focus: #3b82f6;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
             --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --warning: #f59e0b;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-canvas);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Navigation Bar */
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-badge {
+            background: #eff6ff;
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .brand h1 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+            color: #0f172a;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* App Layout */
+        .workspace {
+            flex: 1;
             display: flex;
             flex-direction: row;
-            height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-            gap: 20px;
-            background: var(--bg);
+            padding: 16px 20px;
+            gap: 16px;
+            min-height: 0;
         }
 
         .pane {
             flex: 1;
             display: flex;
             flex-direction: column;
+            background: var(--bg-card);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
             min-width: 0;
         }
 
-        .header {
+        .pane-toolbar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: #fdfdfd;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
         }
 
-        h2 {
-            margin: 0;
-            font-size: 1.1rem;
-            color: #374151;
-        }
-
-        textarea,
-        .preview-container {
-            flex: 1;
-            padding: 20px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            background: #fff;
-            overflow-y: auto;
-            outline: none;
-        }
-
-        textarea {
-            font-family: ui-monospace, monospace;
-            font-size: 14px;
-            resize: none;
-            line-height: 1.5;
-            color: #1f2937;
-        }
-
-        textarea:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
-        }
-
-        button {
-            padding: 8px 16px;
-            background: var(--primary);
-            color: white;
+        .pane-title {
+            font-size: 13px;
             font-weight: 600;
-            border: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Buttons & Controls */
+        button, select {
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 6px 12px;
             border-radius: 6px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.15s ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
-        button:hover {
-            background: #1d4ed8;
+        button.btn-primary {
+            background: var(--primary);
+            color: #ffffff;
+            border: 1px solid var(--primary);
+            font-weight: 600;
         }
 
-        button.success {
-            background: #16a34a;
+        button.btn-primary:hover {
+            background: var(--primary-hover);
         }
 
-        @media (max-width: 768px) {
-            body {
+        button.btn-secondary {
+            background: #ffffff;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+
+        button.btn-secondary:hover {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        button.btn-clean {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+            font-weight: 600;
+        }
+
+        button.btn-clean:hover {
+            background: #fde68a;
+        }
+
+        button.btn-success {
+            background: var(--success) !important;
+            border-color: var(--success) !important;
+            color: #ffffff !important;
+        }
+
+        select {
+            background: #ffffff;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 5px 8px;
+        }
+
+        /* Editor & Preview */
+        textarea {
+            flex: 1;
+            border: none;
+            padding: 16px;
+            font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #1e293b;
+            resize: none;
+            outline: none;
+            background: #ffffff;
+        }
+
+        .preview-wrapper {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            background: #ffffff;
+        }
+
+        /* Toast notification */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: var(--shadow-md);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        #toast.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 860px) {
+            .workspace {
                 flex-direction: column;
             }
         }
@@ -100,103 +245,292 @@
 
 <body>
 
-    <!-- Input Pane -->
-    <div class="pane">
-        <div class="header">
-            <h2>Markdown Input</h2>
+    <header>
+        <div class="brand">
+            <h1>Markdown &rarr; Email Ready</h1>
+            <span class="brand-badge">GitHub Pages Free Tool</span>
         </div>
-        <textarea id="input"
-            placeholder="Type your markdown here...&#10;&#10;## Example&#10;- List item 1&#10;- List item 2&#10;&#10;> Blockquotes and **bold** text work perfectly."></textarea>
+        <div class="header-actions">
+            <button class="btn-clean" id="cleanTextBtn" title="Strips terminal/box bars (│, |) and unwraps broken console lines">
+                ✨ Clean Pasted Text
+            </button>
+            <button class="btn-secondary" id="loadExampleBtn">
+                Load Example
+            </button>
+            <button class="btn-secondary" id="copyMarkdownBtn">
+                Copy Clean MD
+            </button>
+            <button class="btn-secondary" id="copyHtmlBtn">
+                Copy HTML
+            </button>
+            <button class="btn-primary" id="copyRichBtn">
+                📋 Copy for Email (Rich Text)
+            </button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- Input Pane -->
+        <div class="pane">
+            <div class="pane-toolbar">
+                <span class="pane-title">Input (Markdown or Pasted Text)</span>
+                <div class="toolbar-group">
+                    <span id="charCount" style="font-size: 12px; color: var(--text-muted);">0 chars</span>
+                </div>
+            </div>
+            <textarea id="markdownInput" spellcheck="false" placeholder="Paste your markdown or messy text here...&#10;&#10;Supports automatic removal of terminal pipes (│, |) and repairs broken line wraps!"></textarea>
+        </div>
+
+        <!-- Preview Pane -->
+        <div class="pane">
+            <div class="pane-toolbar">
+                <span class="pane-title">Email-Safe Rich Preview</span>
+                <div class="toolbar-group">
+                    <label style="font-size: 12px; color: var(--text-muted); margin-right: 4px;">Font:</label>
+                    <select id="fontSelect">
+                        <option value="Arial, sans-serif">Arial (Universal)</option>
+                        <option value="Calibri, Helvetica, sans-serif">Calibri</option>
+                        <option value="'Segoe UI', Helvetica, Arial, sans-serif">Segoe UI</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">System Default</option>
+                    </select>
+                </div>
+            </div>
+            <div class="preview-wrapper" id="previewArea"></div>
+        </div>
     </div>
 
-    <!-- Preview Pane -->
-    <div class="pane">
-        <div class="header">
-            <h2>Email Preview</h2>
-            <button id="copyBtn">Copy Rich Text</button>
-        </div>
-        <div class="preview-container" id="preview"></div>
-    </div>
+    <div id="toast">Copied to clipboard!</div>
 
     <script>
-        const input = document.getElementById('input');
-        const preview = document.getElementById('preview');
-        const copyBtn = document.getElementById('copyBtn');
+        const input = document.getElementById('markdownInput');
+        const preview = document.getElementById('previewArea');
+        const fontSelect = document.getElementById('fontSelect');
+        const cleanTextBtn = document.getElementById('cleanTextBtn');
+        const copyRichBtn = document.getElementById('copyRichBtn');
+        const copyHtmlBtn = document.getElementById('copyHtmlBtn');
+        const copyMarkdownBtn = document.getElementById('copyMarkdownBtn');
+        const loadExampleBtn = document.getElementById('loadExampleBtn');
+        const charCount = document.getElementById('charCount');
+        const toast = document.getElementById('toast');
 
-        // Email-safe inline CSS mappings
-        // Email clients aggressively strip <style> tags, so we must inject styles directly onto HTML elements.
-        const emailStyles = {
-            'p': 'margin: 0 0 1em 0; line-height: 1.5; font-family: Arial, sans-serif; color: #333333;',
-            'h1': 'margin: 0 0 0.5em 0; font-family: Arial, sans-serif; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; color: #111111;',
-            'h2': 'margin: 1em 0 0.5em 0; font-family: Arial, sans-serif; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; color: #111111;',
-            'h3': 'margin: 1em 0 0.5em 0; font-family: Arial, sans-serif; color: #111111;',
-            'a': 'color: #0366d6; text-decoration: none;',
-            'code': 'font-family: monospace; background-color: rgba(27,31,35,0.05); padding: 0.2em 0.4em; border-radius: 3px; font-size: 85%;',
-            'pre': 'font-family: monospace; background-color: #f6f8fa; padding: 16px; overflow: auto; border-radius: 3px; line-height: 1.45; border: 1px solid #e1e4e8;',
-            'blockquote': 'padding: 0 1em; color: #6a737d; border-left: 0.25em solid #dfe2e5; margin: 0 0 1em 0; font-style: italic;',
-            'table': 'border-collapse: collapse; width: 100%; margin-bottom: 1em; font-family: Arial, sans-serif; font-size: 14px;',
-            'th': 'padding: 8px 12px; border: 1px solid #dfe2e5; background-color: #f6f8fa; font-weight: bold; text-align: left;',
-            'td': 'padding: 8px 12px; border: 1px solid #dfe2e5;',
-            'ul': 'padding-left: 2em; margin: 0 0 1em 0; font-family: Arial, sans-serif; color: #333333;',
-            'ol': 'padding-left: 2em; margin: 0 0 1em 0; font-family: Arial, sans-serif; color: #333333;',
-            'li': 'margin-bottom: 0.25em;'
-        };
+        // Configure marked options
+        marked.setOptions({
+            gfm: true,
+            breaks: false
+        });
 
-        function updatePreview() {
-            // 1. Parse Markdown to raw HTML
-            const rawHtml = marked.parse(input.value);
+        function showToast(msg) {
+            toast.innerText = msg;
+            toast.classList.add('visible');
+            setTimeout(() => toast.classList.remove('visible'), 2400);
+        }
 
-            // 2. Load raw HTML into an invisible DOM wrapper
+        // Email-safe styling definitions
+        function getEmailStyles(fontFamily) {
+            return {
+                'p': `margin: 0 0 12px 0; line-height: 1.55; font-family: ${fontFamily}; color: #222222; font-size: 14px;`,
+                'h1': `margin: 18px 0 8px 0; font-family: ${fontFamily}; font-size: 20px; font-weight: 700; color: #111111; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;`,
+                'h2': `margin: 16px 0 8px 0; font-family: ${fontFamily}; font-size: 16px; font-weight: 700; color: #111111; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px;`,
+                'h3': `margin: 14px 0 6px 0; font-family: ${fontFamily}; font-size: 14px; font-weight: 700; color: #111111;`,
+                'a': 'color: #2563eb; text-decoration: underline;',
+                'code': 'font-family: ui-monospace, Consolas, "Courier New", monospace; background-color: #f1f5f9; color: #0f172a; padding: 2px 5px; border-radius: 4px; font-size: 88%; border: 1px solid #e2e8f0;',
+                'pre': 'font-family: ui-monospace, Consolas, "Courier New", monospace; background-color: #f8fafc; color: #0f172a; padding: 12px; overflow-x: auto; border-radius: 6px; line-height: 1.45; border: 1px solid #e2e8f0; margin: 0 0 12px 0;',
+                'blockquote': 'padding: 4px 12px; color: #475569; border-left: 3px solid #cbd5e1; margin: 0 0 12px 0; background: #f8fafc; font-style: italic;',
+                'table': `border-collapse: collapse; width: 100%; margin: 0 0 14px 0; font-family: ${fontFamily}; font-size: 13px; border: 1px solid #cbd5e1;`,
+                'th': 'padding: 8px 12px; border: 1px solid #cbd5e1; background-color: #f1f5f9; font-weight: bold; text-align: left; color: #1e293b;',
+                'td': 'padding: 8px 12px; border: 1px solid #cbd5e1; color: #334155;',
+                'ul': `padding-left: 22px; margin: 0 0 12px 0; font-family: ${fontFamily}; color: #222222; font-size: 14px; line-height: 1.55;`,
+                'ol': `padding-left: 22px; margin: 0 0 12px 0; font-family: ${fontFamily}; color: #222222; font-size: 14px; line-height: 1.55;`,
+                'li': 'margin-bottom: 6px;'
+            };
+        }
+
+        function renderEmailHtml(markdown) {
+            const font = fontSelect.value;
+            const styles = getEmailStyles(font);
+            const rawHtml = marked.parse(markdown || '');
+
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = rawHtml;
 
-            // 3. Inject inline CSS onto specific tags
-            Object.keys(emailStyles).forEach(tag => {
+            // Apply inline styles to each element
+            Object.keys(styles).forEach(tag => {
                 const elements = tempDiv.getElementsByTagName(tag);
                 for (let el of elements) {
-                    el.style.cssText += emailStyles[tag];
+                    el.style.cssText += styles[tag];
                 }
             });
 
-            // 4. Wrap everything in a base style for the email body
-            const finalHtml = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333333; line-height: 1.5;">${tempDiv.innerHTML}</div>`;
-            preview.innerHTML = finalHtml;
+            // Return container styled for email clients
+            return `<div style="font-family: ${font}; font-size: 14px; color: #222222; line-height: 1.55; max-width: 680px;">${tempDiv.innerHTML}</div>`;
         }
 
-        // Re-render on every keystroke
+        function updatePreview() {
+            const val = input.value;
+            charCount.innerText = `${val.length} chars`;
+            preview.innerHTML = renderEmailHtml(val);
+        }
+
+        // Cleaner function: strips │, |, bullets, and repairs terminal hard wraps
+        function cleanPastedText(raw) {
+            const lines = raw.split(/\r?\n/);
+            const strippedLines = [];
+
+            // 1. Strip leading border characters like "  │ ", "|", etc.
+            for (let line of lines) {
+                let cleaned = line.replace(/^\s*[│|]\s?/, '');
+                // Also trim trailing whitespace
+                cleaned = cleaned.trimEnd();
+                strippedLines.push(cleaned);
+            }
+
+            // 2. Re-wrap lines that were cut mid-sentence
+            const resultLines = [];
+            let i = 0;
+
+            while (i < strippedLines.length) {
+                let current = strippedLines[i];
+
+                // If current line is blank, retain blank line
+                if (current.trim() === '') {
+                    resultLines.push('');
+                    i++;
+                    continue;
+                }
+
+                // Convert bullet character • to standard Markdown "- "
+                current = current.replace(/^\s*•\s*/, '- ');
+
+                // Bold numbered prefixes like "1. Name:" -> "1. **Name**:" for high readability
+                current = current.replace(/^(\d+\.\s+)([^:\n]+:)/, (match, prefix, title) => {
+                    return `${prefix}**${title.replace(/:$/, '')}**:`;
+                });
+
+                // Check if following lines are continuations
+                while (i + 1 < strippedLines.length) {
+                    const next = strippedLines[i + 1];
+                    const trimmedNext = next.trim();
+
+                    if (!trimmedNext) {
+                        break;
+                    }
+
+                    // Conditions where 'next' is a brand new block:
+                    // - Starts with a number item (e.g. "2. ")
+                    // - Starts with bullet ("- ", "* ", "• ")
+                    // - Starts with heading ("#")
+                    // - Starts with greeting/sign-off ("Hi ", "Thanks", "Cheers", "Best,")
+                    const isNewItem = /^(\d+\.|\-|\*|•|#{1,6}|Hi\s|Thanks\b|Best\b|Regards\b|Sincerely\b)/i.test(trimmedNext);
+
+                    if (isNewItem) {
+                        break;
+                    }
+
+                    // Otherwise, 'next' is a broken wrapped continuation!
+                    // Join with current line
+                    current = current + ' ' + trimmedNext;
+                    i++;
+                }
+
+                resultLines.push(current);
+                i++;
+            }
+
+            // Clean up multiple consecutive empty lines
+            return resultLines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+        }
+
+        // Generic placeholder example
+        const sampleEmailClean = `Hi [Recipient Name],
+
+Thanks for the feedback on the project plan. Here is a summary of the key updates and architecture controls:
+
+1. **Security & Server-side Enforcement**: Every route, API endpoint (\`/api/data/\`), and asset enforces permissions server-side to block unauthorized requests (\`403 Forbidden\`).
+2. **Least Privilege Access**: Accounts and access tokens are restricted strictly to read-only scopes by default (\`User.ReadBasic\`).
+3. **Enterprise Single Sign-On (SSO)**: Local credentials are disabled for corporate domains in favor of centralized identity management.
+4. **Governance & Approval Workflows**: Organization-wide visibility requires explicit approval from designated administrators.
+5. **Role-Based Access Control**: Administrative permissions are assigned via predefined enterprise app roles rather than manual flags.
+6. **Audit Trails & Logging**: Append-only logs record all access mutations, permission grants, and data downloads for periodic compliance reporting.
+
+### Department Categories:
+- Engineering (Tech, Dev, QA)
+- Product & Design
+- Operations & Logistics
+- Information Security
+
+> Please review the points above and let us know if you have any questions or recommended adjustments.
+
+Best regards,
+**[Your Name / Team]**`;
+
+        // Event listeners
         input.addEventListener('input', updatePreview);
+        fontSelect.addEventListener('change', updatePreview);
 
-        // Copy logic
-        copyBtn.addEventListener('click', async () => {
+        cleanTextBtn.addEventListener('click', () => {
+            const raw = input.value;
+            if (!raw.trim()) {
+                showToast("Please paste text first.");
+                return;
+            }
+            const cleaned = cleanPastedText(raw);
+            input.value = cleaned;
+            updatePreview();
+            showToast("✨ Text cleaned and reformatted!");
+        });
+
+        loadExampleBtn.addEventListener('click', () => {
+            input.value = sampleEmailClean;
+            updatePreview();
+            showToast("Loaded cleaned example!");
+        });
+
+        // Copy Rich Text (Clipboard API)
+        copyRichBtn.addEventListener('click', async () => {
             if (!input.value.trim()) return;
-
             try {
-                // Push both HTML and plain text to clipboard. 
-                // Email clients will automatically choose the HTML version when pasting into the compose window.
+                const htmlContent = renderEmailHtml(input.value);
+                const plainContent = preview.innerText;
+
                 const clipboardItem = new ClipboardItem({
-                    'text/plain': new Blob([preview.innerText], { type: 'text/plain' }),
-                    'text/html': new Blob([preview.innerHTML], { type: 'text/html' })
+                    'text/plain': new Blob([plainContent], { type: 'text/plain' }),
+                    'text/html': new Blob([htmlContent], { type: 'text/html' })
                 });
 
                 await navigator.clipboard.write([clipboardItem]);
-
-                // Success animation
-                const originalText = copyBtn.innerText;
-                copyBtn.innerText = 'Copied!';
-                copyBtn.classList.add('success');
-
-                setTimeout(() => {
-                    copyBtn.innerText = originalText;
-                    copyBtn.classList.remove('success');
-                }, 2000);
+                showToast("📋 Copied formatted rich text! Ready to paste in email.");
+                copyRichBtn.classList.add('btn-success');
+                setTimeout(() => copyRichBtn.classList.remove('btn-success'), 1800);
             } catch (err) {
-                console.error('Copy failed', err);
-                alert('Failed to copy. Please ensure you are running this over HTTPS or localhost.');
+                console.error("Clipboard write error:", err);
+                // Fallback: select preview element range
+                const range = document.createRange();
+                range.selectNodeContents(preview);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
+                document.execCommand('copy');
+                selection.removeAllRanges();
+                showToast("Copied via selection fallback!");
             }
         });
 
-        // Populate with a default placeholder immediately
-        input.value = "## Hello there,\n\nHere is a list of features:\n\n- Converts **Markdown** to HTML\n- Injects *inline CSS* automatically\n- Works seamlessly with Gmail and Outlook\n\n| Item | Status |\n|---|---|\n| Markdown | parsed |\n| CSS | inline |\n\n> This saves a lot of manual formatting time.\n\nCheers,\nYour automated workflow";
+        copyHtmlBtn.addEventListener('click', async () => {
+            if (!input.value.trim()) return;
+            const htmlContent = renderEmailHtml(input.value);
+            await navigator.clipboard.writeText(htmlContent);
+            showToast("Copied raw HTML to clipboard!");
+        });
+
+        copyMarkdownBtn.addEventListener('click', async () => {
+            if (!input.value.trim()) return;
+            await navigator.clipboard.writeText(input.value);
+            showToast("Copied Markdown to clipboard!");
+        });
+
+        // Initialize with sample on load
+        input.value = sampleEmailClean;
         updatePreview();
     </script>
 </body>
