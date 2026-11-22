@@ -2,6 +2,7 @@
 
 [![Live App](https://img.shields.io/badge/🚀_LAUNCH_APP-Click_Here-2563eb?style=for-the-badge&logo=rocket)](https://nickho6617.github.io/markdown-to-email/)
 [![GitHub Pages](https://img.shields.io/badge/Hosted_on-GitHub_Pages-16a34a?style=for-the-badge&logo=github&logoColor=white)](https://nickho6617.github.io/markdown-to-email/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 > ### 🌐 Live Web App: **[https://nickho6617.github.io/markdown-to-email/](https://nickho6617.github.io/markdown-to-email/)**
 > *Click the button above or link to open the converter directly in your browser.*
@@ -20,3 +21,9 @@ A fast, lightweight, zero-dependency static web app that converts Markdown into 
   - **Copy Raw HTML**: Get the inline-styled HTML markup for newsletters or email templates.
 - **Customizable Typography**: Choose between standard email-safe fonts (Arial, Segoe UI, Calibri, Georgia, System Default) and font sizes.
 - **Zero Build Tools**: Single static HTML page powered by CDN-hosted [marked.js](https://marked.js.org/).
+
+## Maintenance & License
+
+This project is provided **as-is** and is **not actively maintained**. It is here for free use by anyone—feel free to use it as needed, or fork/clone it to build your own improved version.
+
+Licensed under the [MIT License](LICENSE).
