@@ -339,17 +339,216 @@
                 'blockquote': 'padding: 4px 12px; color: #475569; border-left: 3px solid #cbd5e1; margin: 0 0 12px 0; background: #f8fafc; font-style: italic;',
                 'table': `border-collapse: collapse; width: 100%; margin: 0 0 14px 0; font-family: ${fontFamily}; font-size: 13px; border: 1px solid #cbd5e1;`,
                 'th': 'padding: 8px 12px; border: 1px solid #cbd5e1; background-color: #f1f5f9; font-weight: bold; text-align: left; color: #1e293b;',
-                'td': 'padding: 8px 12px; border: 1px solid #cbd5e1; color: #334155;',
+                'td': 'padding: 8px 12px; border: 1px solid #cbd5e1; color: #334155; vertical-align: top; word-break: break-word; overflow-wrap: break-word;',
                 'ul': `padding-left: 22px; margin: 0 0 12px 0; font-family: ${fontFamily}; color: #222222; font-size: 14px; line-height: 1.55;`,
                 'ol': `padding-left: 22px; margin: 0 0 12px 0; font-family: ${fontFamily}; color: #222222; font-size: 14px; line-height: 1.55;`,
                 'li': 'margin-bottom: 6px;'
             };
         }
 
+        // Convert Unicode/ASCII box-drawing tables (e.g. from CLI/terminal output) into standard GFM Markdown tables
+        function isTableRuleLine(line) {
+            const t = line.trim();
+            if (!t) return false;
+            if (!/^[\s─━═\-=┌┐└┘├┤┬┴┼╭╮╰╯╔╗╚╝╠╣╦╩╬┏┓┗┛┣┫┳┻╋╞╡╤╧╪╟╢╥╨╫+]+$/.test(t)) {
+                return false;
+            }
+            const hasRules = (t.match(/[─━═\-=]/g) || []).length >= 3;
+            const hasJunction = /[┌┐└┘├┤┬┴┼╭╮╰╯╔╗╚╝╠╣╦╩╬┏┓┗┛┣┫┳┻╋╞╡╤╧╪╟╢╥╨╫+]/.test(t);
+            return hasRules && hasJunction;
+        }
+
+        function isUnicodeTableRow(line) {
+            return /[│┃║]/.test(line);
+        }
+
+        function isAsciiBoxRow(line) {
+            const t = line.trim();
+            return t.startsWith('|') && t.endsWith('|') && t.length >= 2;
+        }
+
+        function isGfmTableLine(line) {
+            const t = line.trim();
+            if (!t) return false;
+            if (/^\|.*\|$/.test(t)) return true;
+            if (/^:?-{3,}:?(\s*\|\s*:?-{3,}:?)+$/.test(t)) return true;
+            return false;
+        }
+
+        function parseBoxTableBlock(blockLines) {
+            const items = blockLines.map(line => ({
+                type: isTableRuleLine(line) ? 'rule' : 'row',
+                text: line
+            }));
+
+            const ruleItems = items.filter(it => it.type === 'rule');
+            const rowItems = items.filter(it => it.type === 'row');
+
+            // Require at least one box-drawing rule line and at least 2 content rows
+            if (ruleItems.length === 0 || rowItems.length < 2) {
+                return blockLines;
+            }
+
+            const leftJunctionRe = /^[┌├└╭╰╔╠╚┏┣┗╞╟+]/;
+            const rightJunctionRe = /[┐┤┘╮╯╗╣╝┓┫┛╡╢+]$/;
+            const hasLeftBorder = rowItems.every(it => /^[│┃║|]/.test(it.text.trim())) &&
+                ruleItems.every(it => leftJunctionRe.test(it.text.trim()));
+            const hasRightBorder = rowItems.every(it => /[│┃║|]$/.test(it.text.trim())) &&
+                ruleItems.every(it => rightJunctionRe.test(it.text.trim()));
+
+            function splitRow(line) {
+                let inner = line.trim();
+                const useUnicode = /[│┃║]/.test(inner);
+                const sepRegex = useUnicode ? /[│┃║]/ : /\|/;
+                if (hasLeftBorder) {
+                    inner = inner.replace(useUnicode ? /^[│┃║]/ : /^\|/, '');
+                }
+                if (hasRightBorder) {
+                    inner = inner.replace(useUnicode ? /[│┃║]$/ : /\|$/, '');
+                }
+                return inner.split(sepRegex).map(cell => cell.trim().replace(/\|/g, '\\|'));
+            }
+
+            function mergeRowGroup(lines) {
+                const parsed = lines.map(splitRow);
+                const cols = Math.max(...parsed.map(r => r.length));
+                const merged = Array(cols).fill('');
+                for (const row of parsed) {
+                    for (let c = 0; c < row.length; c++) {
+                        if (row[c]) {
+                            merged[c] = merged[c] ? `${merged[c]} ${row[c]}` : row[c];
+                        }
+                    }
+                }
+                return merged;
+            }
+
+            // Trim outer top and bottom border rules
+            let start = 0;
+            while (start < items.length && items[start].type === 'rule') start++;
+            let end = items.length - 1;
+            while (end >= start && items[end].type === 'rule') end--;
+
+            const inner = items.slice(start, end + 1);
+            if (inner.length === 0) return blockLines;
+
+            const sepIdx = inner.findIndex(it => it.type === 'rule');
+            let headerLines;
+            let bodyItems;
+
+            if (sepIdx === -1) {
+                headerLines = [inner[0].text];
+                bodyItems = inner.slice(1);
+            } else {
+                headerLines = inner.slice(0, sepIdx).filter(it => it.type === 'row').map(it => it.text);
+                bodyItems = inner.slice(sepIdx + 1);
+            }
+
+            if (headerLines.length === 0) return blockLines;
+
+            const headerRow = mergeRowGroup(headerLines);
+            const hasBodyRules = bodyItems.some(it => it.type === 'rule');
+            const bodyRows = [];
+
+            if (hasBodyRules) {
+                let group = [];
+                for (const it of bodyItems) {
+                    if (it.type === 'rule') {
+                        if (group.length > 0) {
+                            bodyRows.push(mergeRowGroup(group));
+                            group = [];
+                        }
+                    } else {
+                        group.push(it.text);
+                    }
+                }
+                if (group.length > 0) {
+                    bodyRows.push(mergeRowGroup(group));
+                }
+            } else {
+                for (const it of bodyItems) {
+                    if (it.type === 'row') {
+                        bodyRows.push(splitRow(it.text));
+                    }
+                }
+            }
+
+            if (bodyRows.length === 0) return blockLines;
+
+            const colCount = Math.max(headerRow.length, ...bodyRows.map(r => r.length));
+            const padRow = row => {
+                const padded = row.slice();
+                while (padded.length < colCount) padded.push('');
+                return `| ${padded.join(' | ')} |`;
+            };
+
+            const gfmLines = [
+                padRow(headerRow),
+                `| ${Array(colCount).fill('---').join(' | ')} |`,
+                ...bodyRows.map(padRow)
+            ];
+
+            return gfmLines;
+        }
+
+        function convertBoxTablesToMarkdown(text) {
+            if (!text) return '';
+            const lines = text.split(/\r?\n/);
+            const out = [];
+            let inFence = false;
+            let i = 0;
+
+            while (i < lines.length) {
+                const line = lines[i];
+
+                if (/^\s*(```|~~~)/.test(line)) {
+                    inFence = !inFence;
+                    out.push(line);
+                    i++;
+                    continue;
+                }
+
+                if (inFence) {
+                    out.push(line);
+                    i++;
+                    continue;
+                }
+
+                if (isTableRuleLine(line) || isUnicodeTableRow(line)) {
+                    const block = [];
+                    let j = i;
+                    while (j < lines.length && (isTableRuleLine(lines[j]) || isUnicodeTableRow(lines[j]) || isAsciiBoxRow(lines[j]))) {
+                        block.push(lines[j]);
+                        j++;
+                    }
+                    const converted = parseBoxTableBlock(block);
+                    if (converted !== block) {
+                        if (out.length > 0 && out[out.length - 1].trim() !== '') {
+                            out.push('');
+                        }
+                        out.push(...converted);
+                        if (j < lines.length && lines[j].trim() !== '') {
+                            out.push('');
+                        }
+                    } else {
+                        out.push(...block);
+                    }
+                    i = j;
+                    continue;
+                }
+
+                out.push(line);
+                i++;
+            }
+
+            return out.join('\n');
+        }
+
         function renderEmailHtml(markdown) {
             const font = fontSelect.value;
             const styles = getEmailStyles(font);
-            const rawHtml = marked.parse(markdown || '');
+            const normalizedMarkdown = convertBoxTablesToMarkdown(markdown || '');
+            const rawHtml = marked.parse(normalizedMarkdown);
 
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = rawHtml;
@@ -382,25 +581,45 @@
             preview.innerHTML = renderEmailHtml(val);
         }
 
-        // Cleaner function: strips │, |, bullets, and repairs terminal hard wraps
+        // Cleaner function: strips │, |, bullets, converts box tables, and repairs terminal hard wraps
         function cleanPastedText(raw) {
             const lines = raw.split(/\r?\n/);
             const strippedLines = [];
 
-            // 1. Strip leading border characters like "  │ ", "|", etc.
+            // 1. Strip leading terminal margin characters like "  │ ", "| " (but preserve boxed & GFM tables)
             for (let line of lines) {
-                let cleaned = line.replace(/^\s*[│|]\s?/, '');
-                // Also trim trailing whitespace
-                cleaned = cleaned.trimEnd();
+                let cleaned = line.trimEnd();
+                const trimmed = cleaned.trim();
+                const isBoxOrGfmRow = /^[│┃║|].*[│┃║|]$/.test(trimmed);
+                if (!isBoxOrGfmRow && !isTableRuleLine(cleaned)) {
+                    cleaned = cleaned.replace(/^\s*[│|]\s?/, '');
+                }
                 strippedLines.push(cleaned);
             }
 
-            // 2. Re-wrap lines that were cut mid-sentence
+            // 2. Convert Unicode/ASCII box-drawing tables to clean GFM Markdown tables
+            const normalizedLines = convertBoxTablesToMarkdown(strippedLines.join('\n')).split('\n');
+
+            // 3. Re-wrap lines that were cut mid-sentence (while preserving tables and code blocks)
             const resultLines = [];
             let i = 0;
+            let inFence = false;
 
-            while (i < strippedLines.length) {
-                let current = strippedLines[i];
+            while (i < normalizedLines.length) {
+                let current = normalizedLines[i];
+
+                if (/^\s*(```|~~~)/.test(current)) {
+                    inFence = !inFence;
+                    resultLines.push(current);
+                    i++;
+                    continue;
+                }
+
+                if (inFence || isGfmTableLine(current)) {
+                    resultLines.push(current);
+                    i++;
+                    continue;
+                }
 
                 // If current line is blank, retain blank line
                 if (current.trim() === '') {
@@ -413,16 +632,20 @@
                 current = current.replace(/^\s*•\s*/, '- ');
 
                 // Bold numbered prefixes like "1. Name:" -> "1. **Name**:" for high readability
-                current = current.replace(/^(\d+\.\s+)([^:\n]+:)/, (match, prefix, title) => {
+                current = current.replace(/^\s*(\d+\.\s+)([^:\n]+:)/, (match, prefix, title) => {
                     return `${prefix}**${title.replace(/:$/, '')}**:`;
                 });
 
                 // Check if following lines are continuations
-                while (i + 1 < strippedLines.length) {
-                    const next = strippedLines[i + 1];
+                while (i + 1 < normalizedLines.length) {
+                    const next = normalizedLines[i + 1];
                     const trimmedNext = next.trim();
 
                     if (!trimmedNext) {
+                        break;
+                    }
+
+                    if (/^\s*(```|~~~)/.test(next) || isGfmTableLine(next)) {
                         break;
                     }
 
