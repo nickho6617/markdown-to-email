@@ -20,6 +20,7 @@ A fast, lightweight, zero-dependency static web app that converts Markdown into 
   - **Copy Clean Markdown**: Grab the sanitized markdown text.
   - **Copy Raw HTML**: Get the inline-styled HTML markup for newsletters or email templates.
 - **Customizable Typography**: Choose between standard email-safe fonts (Arial, Segoe UI, Calibri, Georgia, System Default) and font sizes.
+- **System-Aware Dark Mode**: Follows your OS theme on first visit, with a one-click header toggle that remembers your choice. The email preview canvas intentionally stays light so what you see matches what recipients receive.
 - **Zero Build Tools**: Single static HTML page powered by CDN-hosted [marked.js](https://marked.js.org/).
 
 ## Maintenance & License
