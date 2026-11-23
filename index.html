@@ -24,6 +24,16 @@
             }
             document.documentElement.setAttribute('data-theme', theme);
             document.getElementById('themeColor').setAttribute('content', theme === 'dark' ? '#0b1220' : '#f8fafc');
+
+            var previewTheme = 'light';
+            try {
+                if (localStorage.getItem('markdown-to-email-preview-theme') === 'dark') {
+                    previewTheme = 'dark';
+                }
+            } catch (err) {
+                // Preview defaults to the light email view when storage is unavailable.
+            }
+            document.documentElement.setAttribute('data-preview-theme', previewTheme);
         })();
     </script>
     <!-- Marked.js for Markdown parsing -->
@@ -63,6 +73,8 @@
             --toast-border: transparent;
             /* The email preview canvas stays light so it matches email clients. */
             --preview-bg: #ffffff;
+            /* Optional preview-only dark canvas (never used for copied email HTML). */
+            --preview-dark-bg: #0f172a;
             --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
@@ -211,19 +223,37 @@
         .toolbar-group {
             display: flex;
             align-items: center;
-            gap: 8px;
+            flex-wrap: wrap;
+            gap: 8px 16px;
             margin-left: auto;
+        }
+
+        .toolbar-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .toolbar-label {
             font-size: 12px;
             color: var(--text-muted);
-            margin-right: 4px;
         }
 
         .toolbar-meta {
             font-size: 12px;
             color: var(--text-muted);
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
 
         /* Buttons & Controls */
@@ -349,7 +379,24 @@
             background: var(--preview-bg);
         }
 
-        /* Empty state shown on the (always light) email preview canvas */
+        /* Preview-only dark canvas. Copied email HTML always uses light styles. */
+        html[data-preview-theme="dark"] .preview-wrapper {
+            background: var(--preview-dark-bg);
+        }
+
+        html[data-preview-theme="dark"] .preview-wrapper .empty-state {
+            color: #93a3bb;
+        }
+
+        html[data-preview-theme="dark"] .preview-wrapper .empty-state-title {
+            color: #e6edf7;
+        }
+
+        html[data-preview-theme="dark"] .preview-wrapper .empty-state-text {
+            color: #93a3bb;
+        }
+
+        /* Empty state shown on the email preview canvas */
         .empty-state {
             display: flex;
             flex-direction: column;
@@ -508,14 +555,28 @@
             <div class="pane-toolbar">
                 <span class="pane-title">Email-Safe Rich Preview</span>
                 <div class="toolbar-group">
-                    <label class="toolbar-label" for="fontSelect">Font:</label>
-                    <select id="fontSelect">
-                        <option value="Arial, sans-serif">Arial (Universal)</option>
-                        <option value="Calibri, Helvetica, sans-serif">Calibri</option>
-                        <option value="'Segoe UI', Helvetica, Arial, sans-serif">Segoe UI</option>
-                        <option value="Georgia, serif">Georgia</option>
-                        <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">System Default</option>
-                    </select>
+                    <div class="toolbar-field">
+                        <label class="toolbar-label" for="fontSelect">Font:</label>
+                        <select id="fontSelect">
+                            <option value="Arial, sans-serif">Arial (Universal)</option>
+                            <option value="Calibri, Helvetica, sans-serif">Calibri</option>
+                            <option value="'Segoe UI', Helvetica, Arial, sans-serif">Segoe UI</option>
+                            <option value="Georgia, serif">Georgia</option>
+                            <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">System Default</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-field">
+                        <label class="toolbar-label" for="previewThemeSelect">Preview:</label>
+                        <select id="previewThemeSelect"
+                            title="Preview appearance only. Copied email and HTML always stay light."
+                            aria-describedby="previewThemeHint">
+                            <option value="light">Light — email default</option>
+                            <option value="dark">Dark — preview only</option>
+                        </select>
+                    </div>
+                    <span id="previewThemeHint" class="sr-only">
+                        Changes how the preview looks only. Copied rich text and HTML always use light email styling.
+                    </span>
                 </div>
             </div>
             <div class="preview-wrapper" id="previewArea"></div>
@@ -528,6 +589,7 @@
         const input = document.getElementById('markdownInput');
         const preview = document.getElementById('previewArea');
         const fontSelect = document.getElementById('fontSelect');
+        const previewThemeSelect = document.getElementById('previewThemeSelect');
         const cleanTextBtn = document.getElementById('cleanTextBtn');
         const clearBtn = document.getElementById('clearBtn');
         const copyRichBtn = document.getElementById('copyRichBtn');
@@ -538,6 +600,7 @@
         const themeToggle = document.getElementById('themeToggle');
         const themeColorMeta = document.getElementById('themeColor');
         const THEME_STORAGE_KEY = 'markdown-to-email-theme';
+        const PREVIEW_THEME_STORAGE_KEY = 'markdown-to-email-preview-theme';
         const prefersDarkQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
 
         // Configure marked options
@@ -599,8 +662,56 @@
             }
         }
 
-        // Email-safe styling definitions
-        function getEmailStyles(fontFamily) {
+        // Preview theme is independent of the app theme and never affects copied output.
+        function getStoredPreviewTheme() {
+            try {
+                const stored = localStorage.getItem(PREVIEW_THEME_STORAGE_KEY);
+                return stored === 'light' || stored === 'dark' ? stored : 'light';
+            } catch (err) {
+                return 'light';
+            }
+        }
+
+        function initPreviewTheme() {
+            previewThemeSelect.value = getStoredPreviewTheme();
+            applyPreviewTheme(previewThemeSelect.value);
+
+            previewThemeSelect.addEventListener('change', () => {
+                applyPreviewTheme(previewThemeSelect.value);
+                try {
+                    localStorage.setItem(PREVIEW_THEME_STORAGE_KEY, previewThemeSelect.value);
+                } catch (err) {
+                    // Storage can be unavailable (private mode); the choice still applies for this session.
+                }
+                updatePreview();
+            });
+        }
+
+        function applyPreviewTheme(theme) {
+            document.documentElement.setAttribute('data-preview-theme', theme === 'dark' ? 'dark' : 'light');
+        }
+
+        // Email-safe styling definitions.
+        // 'light' is the real email output; 'dark' is used for the preview canvas only.
+        function getEmailStyles(fontFamily, mode) {
+            if (mode === 'dark') {
+                return {
+                    'p': `margin: 0 0 12px 0; line-height: 1.55; font-family: ${fontFamily}; color: #dbe4f0; font-size: 14px;`,
+                    'h1': `margin: 18px 0 8px 0; font-family: ${fontFamily}; font-size: 20px; font-weight: 700; color: #f1f5f9; border-bottom: 1px solid #33425e; padding-bottom: 4px;`,
+                    'h2': `margin: 16px 0 8px 0; font-family: ${fontFamily}; font-size: 16px; font-weight: 700; color: #f1f5f9; border-bottom: 1px solid #2a374c; padding-bottom: 4px;`,
+                    'h3': `margin: 14px 0 6px 0; font-family: ${fontFamily}; font-size: 14px; font-weight: 700; color: #f1f5f9;`,
+                    'a': 'color: #7aa7ff; text-decoration: underline;',
+                    'code': 'font-family: ui-monospace, Consolas, "Courier New", monospace; background-color: #1e293b; color: #e2e8f0; padding: 2px 5px; border-radius: 4px; font-size: 88%; border: 1px solid #334155;',
+                    'pre': 'font-family: ui-monospace, Consolas, "Courier New", monospace; background-color: #111c2e; color: #dbe4f0; padding: 12px; overflow-x: auto; border-radius: 6px; line-height: 1.45; border: 1px solid #2c3c55; margin: 0 0 12px 0;',
+                    'blockquote': 'padding: 4px 12px; color: #b6c2d6; border-left: 3px solid #44557a; margin: 0 0 12px 0; background: #16202f; font-style: italic;',
+                    'table': `border-collapse: collapse; width: 100%; margin: 0 0 14px 0; font-family: ${fontFamily}; font-size: 13px; border: 1px solid #3a4a66;`,
+                    'th': 'padding: 8px 12px; border: 1px solid #3a4a66; background-color: #1c293c; font-weight: bold; text-align: left; color: #e6edf7;',
+                    'td': 'padding: 8px 12px; border: 1px solid #3a4a66; color: #d7e1f0; vertical-align: top; word-break: break-word; overflow-wrap: break-word;',
+                    'ul': `padding-left: 22px; margin: 0 0 12px 0; font-family: ${fontFamily}; color: #d7e1f0; font-size: 14px; line-height: 1.55;`,
+                    'ol': `padding-left: 22px; margin: 0 0 12px 0; font-family: ${fontFamily}; color: #d7e1f0; font-size: 14px; line-height: 1.55;`,
+                    'li': 'margin-bottom: 6px;'
+                };
+            }
             return {
                 'p': `margin: 0 0 12px 0; line-height: 1.55; font-family: ${fontFamily}; color: #222222; font-size: 14px;`,
                 'h1': `margin: 18px 0 8px 0; font-family: ${fontFamily}; font-size: 20px; font-weight: 700; color: #111111; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px;`,
@@ -817,9 +928,10 @@
             return out.join('\n');
         }
 
-        function renderEmailHtml(markdown) {
+        function renderHtml(markdown, mode) {
             const font = fontSelect.value;
-            const styles = getEmailStyles(font);
+            const isDarkPreview = mode === 'dark';
+            const styles = getEmailStyles(font, mode);
             const normalizedMarkdown = convertBoxTablesToMarkdown(markdown || '');
             const rawHtml = marked.parse(normalizedMarkdown);
 
@@ -834,8 +946,18 @@
                 }
             });
 
-            // Return container styled for email clients
-            return `<div style="font-family: ${font}; font-size: 14px; color: #222222; line-height: 1.55; max-width: 680px;">${tempDiv.innerHTML}</div>`;
+            const textColor = isDarkPreview ? '#dbe4f0' : '#222222';
+            return `<div style="font-family: ${font}; font-size: 14px; color: ${textColor}; line-height: 1.55; max-width: 680px;">${tempDiv.innerHTML}</div>`;
+        }
+
+        // Copied output is always light, regardless of the preview theme.
+        function renderEmailHtml(markdown) {
+            return renderHtml(markdown, 'light');
+        }
+
+        // Preview may use the optional dark canvas.
+        function renderPreviewHtml(markdown) {
+            return renderHtml(markdown, previewThemeSelect.value === 'dark' ? 'dark' : 'light');
         }
 
         function updatePreview() {
@@ -851,7 +973,7 @@
                 `;
                 return;
             }
-            preview.innerHTML = renderEmailHtml(val);
+            preview.innerHTML = renderPreviewHtml(val);
         }
 
         // Cleaner function: strips │, |, bullets, converts box tables, and repairs terminal hard wraps
@@ -1028,6 +1150,7 @@
 
         // Initialize ready for immediate paste
         initTheme();
+        initPreviewTheme();
         input.value = '';
         updatePreview();
         input.focus();
