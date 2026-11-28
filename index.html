@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" id="themeColor" content="#f8fafc">
-    <title>Markdown to Email — Free GitHub Pages Formatter</title>
+    <meta name="description" content="Free client-side Markdown to email-ready rich text and HTML converter with inlined CSS, by jibcode.ai.">
+    <title>Markdown to Email — Free Tool by jibcode.ai</title>
     <!-- Apply the saved/system theme before first paint to avoid a flash of the wrong theme -->
     <script>
         (function () {
@@ -36,8 +37,8 @@
             document.documentElement.setAttribute('data-preview-theme', previewTheme);
         })();
     </script>
-    <!-- Marked.js for Markdown parsing -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Marked.js for Markdown parsing (pinned version) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.12/marked.min.js"></script>
     <style>
         :root {
             color-scheme: light;
@@ -144,7 +145,36 @@
         .brand {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 10px;
+        }
+
+        .brand-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--btn-secondary-text);
+            background: var(--btn-secondary-bg);
+            border: 1px solid var(--btn-secondary-border);
+            padding: 4px 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, color 0.15s ease-in-out;
+        }
+
+        .brand-back:hover {
+            background: var(--btn-secondary-hover-bg);
+            border-color: var(--btn-secondary-hover-border);
+            color: var(--text-main);
+        }
+
+        .brand-back:focus-visible,
+        .footer-link:focus-visible {
+            outline: 2px solid var(--border-focus);
+            outline-offset: 2px;
         }
 
         .brand-badge {
@@ -165,6 +195,39 @@
             font-weight: 700;
             margin: 0;
             color: var(--text-main);
+        }
+
+        footer.site-footer {
+            background: var(--bg-elevated);
+            border-top: 1px solid var(--border);
+            padding: 8px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+
+        .footer-link:hover {
+            color: var(--text-main);
+            text-decoration: underline;
         }
 
         .header-actions {
@@ -504,8 +567,9 @@
 
     <header>
         <div class="brand">
+            <a class="brand-back" href="https://jibcode.ai" title="Back to jibcode.ai">&larr; jibcode.ai</a>
             <h1>Markdown &rarr; Email Ready</h1>
-            <span class="brand-badge">GitHub Pages Free Tool</span>
+            <span class="brand-badge">Free Tool</span>
         </div>
         <div class="header-actions">
             <button class="btn-secondary btn-icon" id="themeToggle" type="button" aria-label="Dark mode"
@@ -582,6 +646,14 @@
             <div class="preview-wrapper" id="previewArea"></div>
         </div>
     </div>
+
+    <footer class="site-footer">
+        <span>100% client-side &mdash; nothing leaves your browser.</span>
+        <div class="footer-links">
+            <a class="footer-link" href="https://tools.jibcode.ai">All tools on tools.jibcode.ai</a>
+            <a class="footer-link" href="https://jibcode.ai">Built by jibcode.ai</a>
+        </div>
+    </footer>
 
     <div id="toast" role="status" aria-live="polite">Copied to clipboard!</div>
 
